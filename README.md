@@ -1,4 +1,5 @@
 # Mattermost Suggestions Plugin
+[![CircleCI](https://circleci.com/gh/iomodo/mattermost-plugin-suggestions.svg?style=svg)](https://circleci.com/gh/iomodo/mattermost-plugin-suggestions)
 
 This plugin delivers a channel suggestions for the users using collaborative filtering.
 

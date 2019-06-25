@@ -52,14 +52,14 @@ func appError(message string, err error) *model.AppError {
 	return model.NewAppError("Suggestions Plugin", message, nil, errorMessage, http.StatusBadRequest)
 }
 
-func (p *Plugin) suggestChannelResponse(userId string) (*model.CommandResponse, *model.AppError) {
-	channels, err := p.retreiveUserRecomendations(userId)
+func (p *Plugin) suggestChannelResponse(userID string) (*model.CommandResponse, *model.AppError) {
+	channels, err := p.retreiveUserRecomendations(userID)
 	if err != nil {
 		return nil, appError("Can't retreive user recommendations", err)
 	}
 	text := ""
 	for i := 0; i < len(channels); i++ {
-		channel, err := p.API.GetChannel(channels[i].channelId)
+		channel, err := p.API.GetChannel(channels[i].channelID)
 		if err != nil {
 			return nil, appError("Can't get channel", err)
 		}
