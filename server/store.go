@@ -5,8 +5,8 @@ import (
 )
 
 type recommendedChannel struct {
-	channelID string  // identifier
-	score     float64 // score
+	ChannelID string  // identifier
+	Score     float64 // score
 }
 
 func (p *Plugin) saveUserRecommendations(userID string, channels []recommendedChannel) error {

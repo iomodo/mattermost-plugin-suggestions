@@ -13,6 +13,7 @@ const (
 	trigger       = "suggest"
 	channelAction = "channels"
 	desc          = "Mattermost Suggestions Plugin"
+	noNewChannels = "No new channels for you"
 )
 
 const commandHelp = `
@@ -58,12 +59,15 @@ func (p *Plugin) suggestChannelResponse(userID string) (*model.CommandResponse, 
 		return nil, appError("Can't retreive user recommendations", err)
 	}
 	text := ""
+	if len(channels) == 0 {
+		return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, noNewChannels), nil
+	}
 	for i := 0; i < len(channels); i++ {
-		channel, err := p.API.GetChannel(channels[i].channelID)
+		channel, err := p.API.GetChannel(channels[i].ChannelID)
 		if err != nil {
 			return nil, appError("Can't get channel", err)
 		}
-		text += " * Score " + fmt.Sprintf("%.2f", channels[i].score) + " : " + channel.DisplayName + " \n"
+		text += " * Score " + fmt.Sprintf("%.2f", channels[i].Score) + " : " + channel.DisplayName + " \n"
 	}
 	return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, text), nil
 }
