@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/mattermost/mattermost-server/model"
@@ -8,8 +10,9 @@ import (
 )
 
 const (
-	trigger = "suggest"
-	desc    = "Mattermost Suggestions Plugin"
+	trigger       = "suggest"
+	channelAction = "channels"
+	desc          = "Mattermost Suggestions Plugin"
 )
 
 const commandHelp = `
@@ -36,6 +39,35 @@ func getCommandResponse(responseType, text string) *model.CommandResponse {
 	}
 }
 
+func helpResponse() (*model.CommandResponse, *model.AppError) {
+	text := "###### " + desc + " - Slash Command Help\n" + strings.Replace(commandHelp, "|", "`", -1)
+	return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, text), nil
+}
+
+func appError(message string, err error) *model.AppError {
+	errorMessage := ""
+	if err != nil {
+		errorMessage = err.Error()
+	}
+	return model.NewAppError("Suggestions Plugin", message, nil, errorMessage, http.StatusBadRequest)
+}
+
+func (p *Plugin) suggestChannelResponse(userId string) (*model.CommandResponse, *model.AppError) {
+	channels, err := p.retreiveUserRecomendations(userId)
+	if err != nil {
+		return nil, appError("Can't retreive user recommendations", err)
+	}
+	text := ""
+	for i := 0; i < len(channels); i++ {
+		channel, err := p.API.GetChannel(channels[i].channelId)
+		if err != nil {
+			return nil, appError("Can't get channel", err)
+		}
+		text += " * Score " + fmt.Sprintf("%.2f", channels[i].score) + " : " + channel.DisplayName + " \n"
+	}
+	return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, text), nil
+}
+
 // ExecuteCommand executes a command that has been previously registered via the RegisterCommand API.
 func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
 	split := strings.Fields(args.Command)
@@ -52,8 +84,11 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 	}
 
 	if action == "" || action == "help" {
-		text := "###### " + desc + " - Slash Command Help\n" + strings.Replace(commandHelp, "|", "`", -1)
-		return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, text), nil
+		return helpResponse()
+	}
+
+	if action == channelAction {
+		return p.suggestChannelResponse(args.UserId)
 	}
 	return nil, nil
 }
