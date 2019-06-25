@@ -6,7 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/mattermost/mattermost-server/plugin/plugintest"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestServeHTTP(t *testing.T) {
@@ -24,4 +26,14 @@ func TestServeHTTP(t *testing.T) {
 	bodyString := string(bodyBytes)
 
 	assert.Equal("Hello, world!", bodyString)
+}
+
+func TestOnActivate(t *testing.T) {
+	assert := assert.New(t)
+	plugin := Plugin{}
+	api := &plugintest.API{}
+	api.On("RegisterCommand", mock.Anything).Return(nil)
+	plugin.SetAPI(api)
+	assert.Nil(plugin.OnActivate())
+	assert.Nil(plugin.OnDeactivate())
 }
