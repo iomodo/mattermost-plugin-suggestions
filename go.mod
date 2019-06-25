@@ -6,6 +6,8 @@ require (
 	github.com/mattermost/mattermost-server v5.12.0+incompatible
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.3.0
+	github.com/robfig/cron
+
 )
 
 // Workaround for https://github.com/golang/go/issues/30831 and fallout.

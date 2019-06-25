@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/mattermost/mattermost-server/plugin"
+	"github.com/robfig/cron"
 )
 
 // Plugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
@@ -18,6 +19,9 @@ type Plugin struct {
 	// configuration is the active plugin configuration. Consult getConfiguration and
 	// setConfiguration for usage.
 	configuration *configuration
+
+	// a job for pre-calculating channel recommendations for users.
+	preCalcJob *cron.Cron
 }
 
 // ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
@@ -27,9 +31,26 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 
 // See https://developers.mattermost.com/extend/plugins/server/reference/
 
-// OnActivate will be run on plugin activation
+// OnActivate will be run on plugin activation.
 func (p *Plugin) OnActivate() error {
 	p.API.RegisterCommand(getCommand())
 
+	c := cron.New()
+
+	if err := c.AddFunc("@daily", func() { // Run once a day
+		p.preCalculateRecommendations()
+	}); err != nil {
+		return err
+	}
+
+	c.Start()
+
+	p.preCalcJob = c
+	return nil
+}
+
+// OnDeactivate will be run on plugin deactivation.
+func (p *Plugin) OnDeactivate() error {
+	p.preCalcJob.Stop()
 	return nil
 }
