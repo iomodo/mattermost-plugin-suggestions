@@ -26,3 +26,10 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 }
 
 // See https://developers.mattermost.com/extend/plugins/server/reference/
+
+// OnActivate will be run on plugin activation
+func (p *Plugin) OnActivate() error {
+	p.API.RegisterCommand(getCommand())
+
+	return nil
+}
