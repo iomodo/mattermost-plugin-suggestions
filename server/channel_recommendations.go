@@ -3,6 +3,14 @@ package main
 import "github.com/mattermost/mattermost-server/model"
 
 func (p *Plugin) preCalculateRecommendations() {
+	// since, err := p.retreiveTimestamp()
+	// if err != nil {
+	// 	return
+	// }
+	// postCounts, err := p.getUserPostCountsSince(since)
+	// if err != nil {
+	// 	return
+	// }
 
 }
 
