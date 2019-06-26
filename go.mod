@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/mattermost/mattermost-server v5.12.0+incompatible
 	github.com/pkg/errors v0.8.1
+	github.com/robfig/cron v1.2.0
 	github.com/stretchr/testify v1.3.0
 )
 
