@@ -14,7 +14,7 @@ type recommendedChannel struct {
 	Score     float64 // score
 }
 
-func (p *Plugin) saveUserRecommendations(userID string, channels []recommendedChannel) error {
+func (p *Plugin) saveUserRecommendations(userID string, channels []*recommendedChannel) error {
 	return p.save(userID, channels)
 }
 

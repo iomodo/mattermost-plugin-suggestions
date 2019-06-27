@@ -56,7 +56,7 @@ func appError(message string, err error) *model.AppError {
 func (p *Plugin) suggestChannelResponse(userID string) (*model.CommandResponse, *model.AppError) {
 	channels, err := p.retreiveUserRecomendations(userID)
 	if err != nil {
-		return nil, appError("Can't retreive user recommendations", err)
+		return nil, appError("Can't retreive user recommendations.", err)
 	}
 	text := ""
 	if len(channels) == 0 {

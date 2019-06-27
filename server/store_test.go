@@ -16,7 +16,7 @@ func TestSaveUserRecommendationsNoError(t *testing.T) {
 	api := &plugintest.API{}
 	api.On("KVSet", mock.Anything, mock.Anything).Return((*model.AppError)(nil))
 	plugin.SetAPI(api)
-	var channels []recommendedChannel
+	var channels []*recommendedChannel
 	err := plugin.saveUserRecommendations("randomUser", channels)
 	assert.Nil(err)
 }
@@ -28,7 +28,7 @@ func TestSaveUserRecommendationsWithError(t *testing.T) {
 	api.On("KVSet", mock.Anything, mock.Anything).Return(model.NewAppError("", "", nil, "", 404))
 	api.On("LogError", mock.Anything, mock.Anything, mock.Anything)
 	plugin.SetAPI(api)
-	var channels []recommendedChannel
+	var channels []*recommendedChannel
 	err := plugin.saveUserRecommendations("randomUser", channels)
 	assert.NotNil(err)
 }
