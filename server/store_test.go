@@ -60,5 +60,50 @@ func TestRetreiveUserRecomendationsWithError(t *testing.T) {
 	plugin.SetAPI(api)
 	_, err := plugin.retreiveUserRecomendations("randomUser")
 	assert.NotNil(err)
+}
 
+func TestSaveTimestampNoError(t *testing.T) {
+	assert := assert.New(t)
+	plugin := Plugin{}
+	api := &plugintest.API{}
+	api.On("KVSet", mock.Anything, mock.Anything).Return((*model.AppError)(nil))
+	plugin.SetAPI(api)
+	err := plugin.saveTimestamp(0)
+	assert.Nil(err)
+}
+
+func TestSaveTimestampWithError(t *testing.T) {
+	assert := assert.New(t)
+	plugin := Plugin{}
+	api := &plugintest.API{}
+	api.On("KVSet", mock.Anything, mock.Anything).Return(model.NewAppError("", "", nil, "", 404))
+	api.On("LogError", mock.Anything, mock.Anything, mock.Anything)
+	plugin.SetAPI(api)
+	err := plugin.saveTimestamp(0)
+	assert.NotNil(err)
+}
+
+func TestRetreiveTimestampNoError(t *testing.T) {
+	assert := assert.New(t)
+	plugin := Plugin{}
+	api := &plugintest.API{}
+	timestamp := int64(100)
+	bytes, _ := json.Marshal(timestamp)
+	api.On("KVGet", mock.Anything).Return(bytes, (*model.AppError)(nil))
+	plugin.SetAPI(api)
+	time, err := plugin.retreiveTimestamp()
+	assert.Nil(err)
+	assert.Equal(timestamp, time)
+}
+
+func TestRetreiveTimestampWithError(t *testing.T) {
+	assert := assert.New(t)
+	plugin := Plugin{}
+	api := &plugintest.API{}
+
+	api.On("KVGet", mock.Anything).Return(nil, model.NewAppError("", "", nil, "", 404))
+	api.On("LogError", mock.Anything, mock.Anything, mock.Anything)
+	plugin.SetAPI(api)
+	_, err := plugin.retreiveTimestamp()
+	assert.NotNil(err)
 }
