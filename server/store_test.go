@@ -107,3 +107,64 @@ func TestRetreiveTimestampWithError(t *testing.T) {
 	_, err := plugin.retreiveTimestamp()
 	assert.NotNil(err)
 }
+
+func TestSave(t *testing.T) {
+	t.Run("Marshal error", func(t *testing.T) {
+		api := &plugintest.API{}
+		plugin := Plugin{}
+		api.On("LogError", mock.Anything, mock.Anything, mock.Anything)
+		plugin.SetAPI(api)
+		err := plugin.save("key", func() { return })
+		assert.NotNil(t, err)
+	})
+
+	t.Run("No error", func(t *testing.T) {
+		api := &plugintest.API{}
+		plugin := Plugin{}
+		api.On("KVSet", "key", []byte(`{"key":100}`)).Return(nil)
+		plugin.SetAPI(api)
+		err := plugin.save("key", map[string]interface{}{
+			"key": 100,
+		})
+		assert.Nil(t, err)
+	})
+}
+
+func TestRetreive(t *testing.T) {
+	t.Run("KVGet error", func(t *testing.T) {
+		api := &plugintest.API{}
+		plugin := Plugin{}
+		api.On("KVGet", mock.Anything).Return(nil, &model.AppError{})
+		api.On("LogError", mock.Anything, mock.Anything, mock.Anything)
+		plugin.SetAPI(api)
+
+		err := plugin.retreive("key", nil)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("Marshal error", func(t *testing.T) {
+		api := &plugintest.API{}
+		plugin := Plugin{}
+		api.On("KVGet", mock.Anything).Return([]byte(`{`), nil)
+		plugin.SetAPI(api)
+
+		var value map[string]interface{}
+		err := plugin.retreive("key", &value)
+		assert.NotNil(t, err)
+		assert.Nil(t, value)
+	})
+
+	t.Run("No error", func(t *testing.T) {
+		api := &plugintest.API{}
+		plugin := Plugin{}
+		api.On("KVGet", mock.Anything).Return([]byte(`{"key": 100}`), nil)
+		plugin.SetAPI(api)
+
+		var value map[string]interface{}
+		err := plugin.retreive("key", &value)
+		assert.Nil(t, err)
+		assert.Equal(t, map[string]interface{}{
+			"key": float64(100),
+		}, value)
+	})
+}
