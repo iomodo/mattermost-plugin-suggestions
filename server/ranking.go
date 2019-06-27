@@ -1,20 +1,31 @@
 package main
 
 import (
+	"time"
+
 	"github.com/mattermost/mattermost-server/model"
 )
 
 type userChannelRank = map[string]map[string]int64 //map[userID]map[channelID][rank]
 
-func rankingUnion(r1, r2 userChannelRank) {
-	for userID2, m2 := range r2 {
-		if _, ok := r1[userID2]; !ok {
-			r1[userID2] = make(map[string]int64)
-		}
-		for channelID2, rank2 := range m2 {
-			r1[userID2][channelID2] += rank2
-		}
+func (p *Plugin) getRanking() (userChannelRank, error) {
+	previousTimestamp, err := p.retreiveTimestamp()
+	if err != nil {
+		return nil, err
 	}
+	timestampNow := time.Now().Unix()
+	ranksSince, appErr := p.getRankingSince(previousTimestamp) // TODO what about the posts that where added between those lines?
+	if appErr != nil {
+		return nil, appErr
+	}
+	ranksUntil, err := p.retreiveUserChannelRanks()
+	if err != nil {
+		return nil, err
+	}
+
+	rankingUnion(ranksSince, ranksUntil)
+	p.saveTimestamp(timestampNow)
+	return ranksSince, nil
 }
 
 func (p *Plugin) getRankingSince(since int64) (userChannelRank, *model.AppError) {
@@ -74,4 +85,15 @@ func (p *Plugin) getRankingsSinceForChannel(channelID string, since int64) (user
 		rankings[post.UserId][channelID]++
 	}
 	return rankings, nil
+}
+
+func rankingUnion(r1, r2 userChannelRank) {
+	for userID2, m2 := range r2 {
+		if _, ok := r1[userID2]; !ok {
+			r1[userID2] = make(map[string]int64)
+		}
+		for channelID2, rank2 := range m2 {
+			r1[userID2][channelID2] += rank2
+		}
+	}
 }
