@@ -1,6 +1,8 @@
 package main
 
-import "github.com/mattermost/mattermost-server/model"
+import (
+	"github.com/mattermost/mattermost-server/model"
+)
 
 type userChannelRank = map[string]map[string]int64 //map[userID]map[channelID][rank]
 
@@ -16,7 +18,7 @@ func rankingUnion(r1, r2 userChannelRank) {
 }
 
 func (p *Plugin) getRankingSince(since int64) (userChannelRank, *model.AppError) {
-	var rankings userChannelRank
+	rankings := make(userChannelRank)
 	teams, err := p.API.GetTeams()
 	if err != nil {
 		p.API.LogError("can't get Teams", "err", err.Error())
@@ -33,7 +35,7 @@ func (p *Plugin) getRankingSince(since int64) (userChannelRank, *model.AppError)
 }
 
 func (p *Plugin) getRankingSinceForTeam(teamID string, since int64) (userChannelRank, *model.AppError) {
-	var rankings userChannelRank
+	rankings := make(userChannelRank)
 	page := 0
 	perPage := 100
 	for {
@@ -52,23 +54,24 @@ func (p *Plugin) getRankingSinceForTeam(teamID string, since int64) (userChannel
 			}
 			rankingUnion(rankings, rankingsForChannel)
 		}
+		page++
 	}
 	return rankings, nil
 }
 
 func (p *Plugin) getRankingsSinceForChannel(channelID string, since int64) (userChannelRank, *model.AppError) {
-	var rankings userChannelRank
+	rankings := make(userChannelRank)
 	postList, err := p.API.GetPostsSince(channelID, since)
 	if err != nil {
 		p.API.LogError("can't get posts since", "err", err.Error())
 		return nil, err
 	}
 	posts := postList.ToSlice()
-	for i := 0; i < len(posts); i++ {
-		if _, ok := rankings[posts[i].UserId]; !ok {
-			rankings[posts[i].UserId] = make(map[string]int64)
+	for _, post := range posts {
+		if _, ok := rankings[post.UserId]; !ok {
+			rankings[post.UserId] = make(map[string]int64)
 		}
-		rankings[posts[i].UserId][channelID]++
+		rankings[post.UserId][channelID]++
 	}
 	return rankings, nil
 }
