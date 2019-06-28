@@ -10,19 +10,22 @@ import (
 )
 
 const (
-	trigger          = "suggest"
-	channelAction    = "channels"
-	addRandomChannel = "add"
+	trigger                = "suggest"
+	channelAction          = "channels"
+	addRandomChannelAction = "add"
+	resetAction            = "reset"
 
 	desc                 = "Mattermost Suggestions Plugin"
-	noNewChannels        = "No new channels for you."
+	noNewChannelsText    = "No new channels for you."
 	addRandomChannelText = "Channel was successfully added."
+	resetText            = "Recommendations were cleared"
 )
 
 const commandHelp = `
 * |/suggest info| - Shows user info
 * |/suggest channels| - Suggests relevant channels for the user
 * |/suggest add| - Adds random channel to a current user. For testing only.
+* |/suggest reset| - Resets suggestions. For testing only.
 `
 
 func getCommand() *model.Command {
@@ -77,7 +80,7 @@ func (p *Plugin) suggestChannelResponse(userID string) (*model.CommandResponse, 
 	}
 	channels := p.getChannelListFromRecommendations(recommendations)
 	if len(channels) == 0 {
-		return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, noNewChannels), nil
+		return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, noNewChannelsText), nil
 	}
 	text := ""
 	for _, channel := range channels {
@@ -100,6 +103,12 @@ func (p *Plugin) addRandomChannel(teamID, userID string) (*model.CommandResponse
 	recommendations = append(recommendations, recommend)
 	p.saveUserRecommendations(userID, recommendations)
 	return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, addRandomChannelText+" Channel name "+randChan.DisplayName), nil
+}
+
+func (p *Plugin) reset(userID string) (*model.CommandResponse, *model.AppError) {
+	p.saveUserRecommendations(userID, make([]*recommendedChannel, 0))
+	return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, resetText), nil
+
 }
 
 // ExecuteCommand executes a command that has been previously registered via the RegisterCommand API.
@@ -125,8 +134,12 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 		return p.suggestChannelResponse(args.UserId)
 	}
 
-	if action == addRandomChannel {
+	if action == addRandomChannelAction {
 		return p.addRandomChannel(args.TeamId, args.UserId)
+	}
+
+	if action == resetAction {
+		return p.reset(args.TeamId)
 	}
 	return nil, nil
 }
