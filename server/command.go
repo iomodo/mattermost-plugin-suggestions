@@ -3,6 +3,7 @@ package main
 import (
 	"math/rand"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/mattermost/mattermost-server/model"
@@ -61,6 +62,9 @@ func appError(message string, err error) *model.AppError {
 }
 
 func (p *Plugin) getChannelListFromRecommendations(recommendations []*recommendedChannel) []*model.Channel {
+	sort.Slice(recommendations, func(i, j int) bool {
+		return recommendations[i].Score > recommendations[j].Score
+	})
 	channels := make([]*model.Channel, 0)
 	for _, rec := range recommendations {
 		channel, err := p.API.GetChannel(rec.ChannelID)
@@ -82,9 +86,9 @@ func (p *Plugin) suggestChannelResponse(userID string) (*model.CommandResponse, 
 	if len(channels) == 0 {
 		return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, noNewChannelsText), nil
 	}
-	text := ""
+	text := "Channels we recommend"
 	for _, channel := range channels {
-		text += " * " + channel.DisplayName + " \n"
+		text += " * ~" + channel.Name + " - " + channel.Purpose + "\n"
 	}
 	return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, text), nil
 }

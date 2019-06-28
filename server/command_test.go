@@ -60,7 +60,7 @@ func TestExecuteCommandSuggestChannelsZero(t *testing.T) {
 	}
 	resp, err := plugin.ExecuteCommand(nil, args)
 	assert.Nil(err)
-	assert.Equal(noNewChannels, resp.Text)
+	assert.Equal(noNewChannelsText, resp.Text)
 }
 
 func TestExecuteCommandSuggestChannels(t *testing.T) {
@@ -94,7 +94,7 @@ func TestExecuteCommandSuggestChannelError(t *testing.T) {
 	bytes, _ := json.Marshal(channels)
 
 	api.On("KVGet", mock.Anything).Return(bytes, (*model.AppError)(nil))
-	api.On("GetChannel", mock.Anything).Return(&model.Channel{DisplayName: "CoolChannel"}, (*model.AppError)(nil))
+	api.On("GetChannel", mock.Anything).Return(&model.Channel{Name: "CoolChannel"}, (*model.AppError)(nil))
 	plugin.SetAPI(api)
 
 	args := &model.CommandArgs{
@@ -102,5 +102,5 @@ func TestExecuteCommandSuggestChannelError(t *testing.T) {
 	}
 	resp, err := plugin.ExecuteCommand(nil, args)
 	assert.Nil(err)
-	assert.Equal(" * Score 0.10 : CoolChannel \n", resp.Text)
+	assert.Equal(" * ~CoolChannel - \n", resp.Text)
 }
