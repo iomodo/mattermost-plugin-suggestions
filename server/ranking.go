@@ -24,7 +24,9 @@ func (p *Plugin) getRanking() (userChannelRank, error) {
 	}
 
 	rankingUnion(ranksSince, ranksUntil)
-	p.saveTimestamp(timestampNow)
+	if err = p.saveTimestamp(timestampNow); err != nil {
+		return nil, err
+	}
 	return ranksSince, nil
 }
 

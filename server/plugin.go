@@ -34,6 +34,10 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 // OnActivate will be run on plugin activation.
 func (p *Plugin) OnActivate() error {
 	p.API.RegisterCommand(getCommand())
+	err := p.initStore()
+	if err != nil {
+		return err
+	}
 
 	c := cron.New()
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/mattermost/mattermost-server/model"
@@ -212,5 +213,102 @@ func TestGetRankingSince(t *testing.T) {
 		ranks, err := plugin.getRankingSince(0)
 		assert.Nil(err)
 		assert.Equal(correctRanks, ranks)
+	})
+}
+
+func TestGetRanking(t *testing.T) {
+	assert := assert.New(t)
+	t.Run("retreiveTimestamp error", func(t *testing.T) {
+		api := &plugintest.API{}
+		plugin := Plugin{}
+		api.On("KVGet", timestampKey).Return(nil, model.NewAppError("", "", nil, "", 404))
+		api.On("LogError", mock.Anything, mock.Anything, mock.Anything)
+		plugin.SetAPI(api)
+		_, err := plugin.getRanking()
+		assert.NotNil(err)
+	})
+
+	t.Run("getRankingSince error", func(t *testing.T) {
+		api := &plugintest.API{}
+		plugin := Plugin{}
+		api.On("KVGet", timestampKey).Return([]byte(`0`), nil)
+		api.On("GetTeams").Return(nil, model.NewAppError("", "", nil, "", 404))
+		api.On("LogError", mock.Anything, mock.Anything, mock.Anything)
+		plugin.SetAPI(api)
+		_, err := plugin.getRanking()
+		assert.NotNil(err)
+	})
+
+	t.Run("retreiveUserChannelRanks error", func(t *testing.T) {
+		api := &plugintest.API{}
+		plugin := Plugin{}
+		api.On("KVGet", timestampKey).Return([]byte(`0`), nil)
+		teams := make([]*model.Team, 1)
+		teams[0] = &model.Team{Id: "teamID"}
+		api.On("GetTeams").Return(teams, nil)
+		channelID := "channel1"
+		channels := make([]*model.Channel, 1)
+		channels[0] = &model.Channel{Id: channelID}
+		postList, _ := createMockPostList()
+		api.On("GetPublicChannelsForTeam", mock.Anything, 0, mock.Anything).Return(channels, nil)
+		api.On("GetPublicChannelsForTeam", mock.Anything, 1, mock.Anything).Return(make([]*model.Channel, 0), nil)
+		api.On("GetPostsSince", channelID, mock.Anything).Return(postList, nil)
+		api.On("KVGet", userChannelRanksKey).Return(nil, model.NewAppError("", "", nil, "", 404))
+		api.On("LogError", mock.Anything, mock.Anything, mock.Anything)
+		plugin.SetAPI(api)
+		_, err := plugin.getRanking()
+		assert.NotNil(err)
+	})
+
+	t.Run("saveTimestamp error", func(t *testing.T) {
+		api := &plugintest.API{}
+		plugin := Plugin{}
+		api.On("KVGet", timestampKey).Return([]byte(`0`), nil)
+		teams := make([]*model.Team, 1)
+		teams[0] = &model.Team{Id: "teamID"}
+		api.On("GetTeams").Return(teams, nil)
+		channelID := "channel1"
+		channels := make([]*model.Channel, 1)
+		channels[0] = &model.Channel{Id: channelID}
+		postList, _ := createMockPostList()
+		api.On("GetPublicChannelsForTeam", mock.Anything, 0, mock.Anything).Return(channels, nil)
+		api.On("GetPublicChannelsForTeam", mock.Anything, 1, mock.Anything).Return(make([]*model.Channel, 0), nil)
+		api.On("GetPostsSince", channelID, mock.Anything).Return(postList, nil)
+		um := make(userChannelRank)
+		um["user10"] = map[string]int64{"chan": 100}
+		j, _ := json.Marshal(um)
+		api.On("KVGet", userChannelRanksKey).Return(j, nil)
+		api.On("KVSet", mock.Anything, mock.Anything).Return(model.NewAppError("", "", nil, "", 404))
+		api.On("LogError", mock.Anything, mock.Anything, mock.Anything)
+		plugin.SetAPI(api)
+		_, err := plugin.getRanking()
+		assert.NotNil(err)
+	})
+
+	t.Run("no error", func(t *testing.T) {
+		api := &plugintest.API{}
+		plugin := Plugin{}
+		api.On("KVGet", timestampKey).Return([]byte(`0`), nil)
+		teams := make([]*model.Team, 1)
+		teams[0] = &model.Team{Id: "teamID"}
+		api.On("GetTeams").Return(teams, nil)
+		channelID := "channel1"
+		channels := make([]*model.Channel, 1)
+		channels[0] = &model.Channel{Id: channelID}
+		postList, correct := createMockPostList()
+		api.On("GetPublicChannelsForTeam", mock.Anything, 0, mock.Anything).Return(channels, nil)
+		api.On("GetPublicChannelsForTeam", mock.Anything, 1, mock.Anything).Return(make([]*model.Channel, 0), nil)
+		api.On("GetPostsSince", channelID, mock.Anything).Return(postList, nil)
+		um := make(userChannelRank)
+		um["user10"] = map[string]int64{"chan": 100}
+		j, _ := json.Marshal(um)
+		api.On("KVGet", userChannelRanksKey).Return(j, nil)
+		api.On("KVSet", mock.Anything, mock.Anything).Return(nil)
+		api.On("LogError", mock.Anything, mock.Anything, mock.Anything)
+		plugin.SetAPI(api)
+		ranks, err := plugin.getRanking()
+		assert.Nil(err)
+		rankingUnion(correct, um)
+		assert.Equal(correct, ranks)
 	})
 }

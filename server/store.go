@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 const (
@@ -61,13 +62,19 @@ func (p *Plugin) retreiveUserChannelRanks() (userChannelRank, error) {
 }
 
 // save method saves generic value in the KVStore
-func (p *Plugin) save(key string, value interface{}) error {
+func (p *Plugin) save(key string, value interface{}) (err error) {
 	j, err := json.Marshal(value)
+	println(fmt.Sprintf("%v", err))
 	if err != nil {
 		p.API.LogError("Can't marshal time", "err", err.Error())
 		return err
 	}
-	return p.API.KVSet(key, j)
+	appErr := p.API.KVSet(key, j)
+	if appErr != nil {
+		p.API.LogError("Can't set key", "err", appErr.Error())
+		return appErr
+	}
+	return nil
 }
 
 // retreive method gets saved generic value from the KVStore

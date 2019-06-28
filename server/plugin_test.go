@@ -33,6 +33,7 @@ func TestOnActivate(t *testing.T) {
 	plugin := Plugin{}
 	api := &plugintest.API{}
 	api.On("RegisterCommand", mock.Anything).Return(nil)
+	api.On("KVSet", mock.Anything, mock.Anything).Return(nil)
 	plugin.SetAPI(api)
 	assert.Nil(plugin.OnActivate())
 	assert.Nil(plugin.OnDeactivate())
