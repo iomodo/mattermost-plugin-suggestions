@@ -16,3 +16,31 @@ func cosineSimilarity(a, b []float64) float64 {
 	}
 	return ab / math.Sqrt(aa*bb)
 }
+
+// indexUsers indexes all users in the userchannelRanks map
+func indexUsers(userchannelRanks map[string]map[string]int64) map[string]int64 {
+	dict := make(map[string]int64)
+	index := int64(0)
+	for k := range userchannelRanks {
+		if _, ok := dict[k]; !ok {
+			dict[k] = index
+			index++
+		}
+	}
+	return dict
+}
+
+// indexChannels indexes all channels in the userchannelRanks map
+func indexChannels(userchannelRanks map[string]map[string]int64) map[string]int64 {
+	dict := make(map[string]int64)
+	index := int64(0)
+	for _, v := range userchannelRanks {
+		for channel := range v {
+			if _, ok := dict[channel]; !ok {
+				dict[channel] = index
+				index++
+			}
+		}
+	}
+	return dict
+}

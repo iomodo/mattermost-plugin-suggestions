@@ -27,3 +27,27 @@ func TestCosineSimilarity(t *testing.T) {
 		assert.InDelta(0.99258, cosineSimilarity(a, b), epsilon)
 	})
 }
+
+func TestIndexUsers(t *testing.T) {
+	assert := assert.New(t)
+	m := make(map[string]map[string]int64)
+	m["user1"] = nil
+	m["user2"] = nil
+	indexedMap := indexUsers(m)
+	assert.Equal(2, len(indexedMap))
+}
+
+func TestIndexChannels(t *testing.T) {
+	assert := assert.New(t)
+	m := make(map[string]map[string]int64)
+	m["user1"] = make(map[string]int64)
+	m["user1"]["chan1"] = 0
+	m["user1"]["chan2"] = 0
+	m["user1"]["chan3"] = 0
+	m["user2"] = make(map[string]int64)
+	m["user2"]["chan2"] = 0
+	m["user2"]["chan3"] = 0
+	m["user2"]["chan4"] = 0
+	indexedMap := indexChannels(m)
+	assert.Equal(4, len(indexedMap))
+}
