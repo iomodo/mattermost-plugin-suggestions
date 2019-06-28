@@ -10,8 +10,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// func assertThat(command, text string, )
-
 func TestExecuteCommandTrivial(t *testing.T) {
 	assert := assert.New(t)
 	plugin := Plugin{}
@@ -102,5 +100,20 @@ func TestExecuteCommandSuggestChannelError(t *testing.T) {
 	}
 	resp, err := plugin.ExecuteCommand(nil, args)
 	assert.Nil(err)
-	assert.Equal(" * ~CoolChannel - \n", resp.Text)
+	assert.Equal("Channels we recommend\n * ~CoolChannel - \n", resp.Text)
+}
+
+func TestExecuteCommandReset(t *testing.T) {
+	assert := assert.New(t)
+	plugin := Plugin{}
+	api := &plugintest.API{}
+	api.On("KVSet", mock.Anything, mock.Anything).Return((*model.AppError)(nil))
+	plugin.SetAPI(api)
+	args := &model.CommandArgs{
+		Command: "/suggest reset",
+	}
+	resp, err := plugin.ExecuteCommand(nil, args)
+	assert.Nil(err)
+	assert.Equal(resetText, resp.Text)
+
 }

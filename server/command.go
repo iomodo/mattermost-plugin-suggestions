@@ -19,7 +19,7 @@ const (
 	desc                 = "Mattermost Suggestions Plugin"
 	noNewChannelsText    = "No new channels for you."
 	addRandomChannelText = "Channel was successfully added."
-	resetText            = "Recommendations were cleared"
+	resetText            = "Recommendations were cleared."
 )
 
 const commandHelp = `
@@ -86,7 +86,7 @@ func (p *Plugin) suggestChannelResponse(userID string) (*model.CommandResponse, 
 	if len(channels) == 0 {
 		return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, noNewChannelsText), nil
 	}
-	text := "Channels we recommend"
+	text := "Channels we recommend\n"
 	for _, channel := range channels {
 		text += " * ~" + channel.Name + " - " + channel.Purpose + "\n"
 	}
@@ -112,7 +112,6 @@ func (p *Plugin) addRandomChannel(teamID, userID string) (*model.CommandResponse
 func (p *Plugin) reset(userID string) (*model.CommandResponse, *model.AppError) {
 	p.saveUserRecommendations(userID, make([]*recommendedChannel, 0))
 	return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, resetText), nil
-
 }
 
 // ExecuteCommand executes a command that has been previously registered via the RegisterCommand API.
@@ -143,7 +142,7 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 	}
 
 	if action == resetAction {
-		return p.reset(args.TeamId)
+		return p.reset(args.UserId)
 	}
 	return nil, nil
 }
