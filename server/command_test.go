@@ -74,13 +74,14 @@ func TestExecuteCommandSuggestChannels(t *testing.T) {
 
 	api.On("KVGet", mock.Anything).Return(bytes, (*model.AppError)(nil))
 	api.On("GetChannel", mock.Anything).Return(&model.Channel{DisplayName: "CoolChannel"}, model.NewAppError("", "", nil, "", 404))
+	api.On("LogError", mock.Anything, mock.Anything, mock.Anything)
 	plugin.SetAPI(api)
 
 	args := &model.CommandArgs{
 		Command: "/suggest channels",
 	}
 	_, err := plugin.ExecuteCommand(nil, args)
-	assert.NotNil(err)
+	assert.Nil(err)
 }
 
 func TestExecuteCommandSuggestChannelError(t *testing.T) {
