@@ -1,5 +1,10 @@
 package ml
 
+import (
+	"container/heap"
+	"errors"
+)
+
 const defaultK = 10
 
 // SimpleKNN struct
@@ -7,8 +12,8 @@ type SimpleKNN struct {
 	params                  map[string]interface{}
 	channelSimilarityMatrix [][]float64
 	activityMatrix          [][]float64
-	userIndexes             map[string]int64
-	channelIndexes          map[string]int64
+	userIndexes             map[string]int
+	channelIndexes          map[string]int
 	similarity              funcSimilarity
 	k                       int
 }
@@ -16,8 +21,8 @@ type SimpleKNN struct {
 // BaseEstimator determines interface for all estimators for user-channel suggestions
 type BaseEstimator interface {
 	SetParams(params map[string]interface{})
-	Predict(userID, channelID string) float64
-	Fit(rankings map[string]map[string]int64)
+	Predict(userID, channelID string) (float64, error)
+	Fit(activities map[string]map[string]int64)
 }
 
 // NewSimpleKNN returns Simple KNN Estimator
@@ -51,30 +56,34 @@ func (knn *SimpleKNN) SetParams(params map[string]interface{}) {
 	}
 }
 
-func (knn *SimpleKNN) computeActivityMatrix(rankings map[string]map[string]int64) {
-	knn.userIndexes = indexUsers(rankings)
-	knn.channelIndexes = indexChannels(rankings)
+func (knn *SimpleKNN) computeActivityMatrix(activities map[string]map[string]int64) {
+	knn.userIndexes = indexUsers(activities)
+	knn.channelIndexes = indexChannels(activities)
 	knn.activityMatrix = make([][]float64, len(knn.channelIndexes))
 	for i := 0; i < len(knn.channelIndexes); i++ {
 		knn.activityMatrix[i] = make([]float64, len(knn.userIndexes))
 	}
 
-	for user, m := range rankings {
-		for channel, rank := range m {
+	for user, m := range activities {
+		for channel, activity := range m {
 			uIndex := knn.userIndexes[user]
 			chIndex := knn.channelIndexes[channel]
-			knn.activityMatrix[chIndex][uIndex] = float64(rank)
+			knn.activityMatrix[chIndex][uIndex] = float64(activity)
 		}
 	}
 
 }
 
-func (knn *SimpleKNN) computeSimilarityMatrix() {
-	channelCount := len(knn.activityMatrix)
+func (knn *SimpleKNN) createSimilarityMatrix(channelCount int) {
 	knn.channelSimilarityMatrix = make([][]float64, channelCount)
 	for i := 0; i < channelCount; i++ {
 		knn.channelSimilarityMatrix[i] = make([]float64, channelCount)
 	}
+}
+
+func (knn *SimpleKNN) computeSimilarityMatrix() {
+	channelCount := len(knn.activityMatrix)
+	knn.createSimilarityMatrix(channelCount)
 	for i := 0; i < channelCount; i++ {
 		for j := 0; j < channelCount; j++ {
 			knn.channelSimilarityMatrix[i][j] = knn.similarity(knn.activityMatrix[i], knn.activityMatrix[j])
@@ -83,27 +92,53 @@ func (knn *SimpleKNN) computeSimilarityMatrix() {
 }
 
 // Fit the KNN estimator
-func (knn *SimpleKNN) Fit(rankings map[string]map[string]int64) {
-	knn.computeActivityMatrix(rankings)
+func (knn *SimpleKNN) Fit(activities map[string]map[string]int64) {
+	knn.computeActivityMatrix(activities)
 	knn.computeSimilarityMatrix()
 }
 
-func (knn *SimpleKNN) getNeighbors(channel int64) []int64 {
-	// chanVector := knn.channelSimilarityMatrix[channel]
-	return nil
+// assumes len(channel) >= knn.k
+func (knn *SimpleKNN) getNeighbors(channel int) []int {
+	chanVector := knn.channelSimilarityMatrix[channel]
+
+	pq := NewMaxHeapK(knn.k)
+	for i := 0; i < len(chanVector); i++ {
+		if i != channel {
+			pq.Add(&Item{
+				value:    i,
+				priority: chanVector[i],
+			})
+		}
+	}
+	neighbors := make([]int, knn.k)
+	for i := 0; i < knn.k; i++ {
+		index := heap.Pop(pq).(*Item).value.(int)
+		neighbors[i] = index
+	}
+	return neighbors
 }
 
-// Predict the rank of channel channelID for userID
-func (knn *SimpleKNN) Predict(userID, channelID string) float64 {
-	// channel, exists := knn.channelIndexes[channelID]
-	// if !exists {
-	// 	panic("Unknown channelID")
-	// }
-	// user, exists := knn.userIndexes[userID]
-	// if !exists {
-	// 	panic("Unknown userID")
-	// }
-	// neighbors := knn.getNeighbors(channel)
+// Predict the activity of channel channelID for userID
+func (knn *SimpleKNN) Predict(userID, channelID string) (float64, error) {
+	channel, exists := knn.channelIndexes[channelID]
+	if !exists {
+		return 0, errors.New("unknown channelID: " + channelID)
+	}
+	user, exists := knn.userIndexes[userID]
+	if !exists {
+		return 0, errors.New("unknown userID" + userID)
+	}
+	if len(knn.channelSimilarityMatrix) < knn.k {
+		return 0, nil // TODO
+	}
+	neighbors := knn.getNeighbors(channel)
 
-	return 0
+	score := 0.0
+	sum := 0.0
+	for i := 0; i < len(neighbors); i++ {
+		score += knn.channelSimilarityMatrix[channel][neighbors[i]] * knn.activityMatrix[neighbors[i]][user]
+		sum += knn.channelSimilarityMatrix[channel][neighbors[i]]
+	}
+	score = score / sum
+	return score, nil
 }

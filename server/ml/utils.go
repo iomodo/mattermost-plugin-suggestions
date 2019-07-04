@@ -18,9 +18,9 @@ func cosineSimilarity(a, b []float64) float64 {
 }
 
 // indexUsers indexes all users in the userchannelRanks map
-func indexUsers(userchannelRanks map[string]map[string]int64) map[string]int64 {
-	dict := make(map[string]int64)
-	index := int64(0)
+func indexUsers(userchannelRanks map[string]map[string]int64) map[string]int {
+	dict := make(map[string]int)
+	index := 0
 	for k := range userchannelRanks {
 		if _, ok := dict[k]; !ok {
 			dict[k] = index
@@ -31,9 +31,9 @@ func indexUsers(userchannelRanks map[string]map[string]int64) map[string]int64 {
 }
 
 // indexChannels indexes all channels in the userchannelRanks map
-func indexChannels(userchannelRanks map[string]map[string]int64) map[string]int64 {
-	dict := make(map[string]int64)
-	index := int64(0)
+func indexChannels(userchannelRanks map[string]map[string]int64) map[string]int {
+	dict := make(map[string]int)
+	index := 0
 	for _, v := range userchannelRanks {
 		for channel := range v {
 			if _, ok := dict[channel]; !ok {

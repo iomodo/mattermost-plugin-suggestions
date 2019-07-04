@@ -146,3 +146,81 @@ func TestFit(t *testing.T) {
 		}
 	}
 }
+
+func setMockSim(knn *SimpleKNN) {
+	channelCount := 4
+	knn.createSimilarityMatrix(channelCount)
+	knn.channelSimilarityMatrix[0] = []float64{1, 0.5, 0.9, 0.1}
+	knn.channelSimilarityMatrix[1] = []float64{0.5, 1, 0, 0.4}
+	knn.channelSimilarityMatrix[2] = []float64{0.9, 0, 1, 0}
+	knn.channelSimilarityMatrix[3] = []float64{0.1, 0.4, 0, 1}
+}
+
+func TestGetNeighbors(t *testing.T) {
+	assert := assert.New(t)
+	m := make(map[string]interface{})
+	m["k"] = 2
+	knn := new(SimpleKNN)
+	knn.SetParams(m)
+	setMockSim(knn)
+	neighbors := knn.getNeighbors(1)
+	correctNeighbors := []int{3, 0}
+	assert.Equal(2, knn.k)
+	assert.Equal(2, len(neighbors))
+	for i := 0; i < knn.k; i++ {
+		assert.Equal(correctNeighbors[i], neighbors[i])
+	}
+}
+
+func getUserChannelRanks2() map[string]map[string]int64 {
+	m := make(map[string]map[string]int64)
+	m["user1"] = make(map[string]int64)
+	m["user1"]["chan1"] = 1
+	m["user1"]["chan2"] = 2
+	m["user1"]["chan3"] = 3
+	// m["user1"]["chan4"] = 1.76051
+	m["user2"] = make(map[string]int64)
+	// m["user2"]["chan1"] = 1.42595
+	m["user2"]["chan2"] = 4
+	m["user2"]["chan3"] = 2
+	m["user2"]["chan4"] = 1
+	m["user3"] = make(map[string]int64)
+	m["user3"]["chan1"] = 3
+	// m["user3"]["chan2"] = 4.10728
+	m["user3"]["chan3"] = 2
+	m["user3"]["chan4"] = 5
+	return m
+}
+
+func TestPredict(t *testing.T) {
+	assert := assert.New(t)
+	m := getUserChannelRanks2()
+	kn := NewSimpleKNN(nil)
+	knn := kn.(*SimpleKNN)
+	knn.k = 2
+	knn.Fit(m)
+	t.Run("userID error", func(t *testing.T) {
+		_, err := knn.Predict("user7", "chan1")
+		assert.NotNil(err)
+	})
+
+	t.Run("channelID error", func(t *testing.T) {
+		_, err := knn.Predict("user1", "chan7")
+		assert.NotNil(err)
+	})
+
+	epsilon := 0.001
+	t.Run("no error", func(t *testing.T) {
+		pred, err := knn.Predict("user1", "chan4")
+		assert.Nil(err)
+		assert.InDelta(1.76051, pred, epsilon)
+
+		pred, err = knn.Predict("user2", "chan1")
+		assert.Nil(err)
+		assert.InDelta(1.42595, pred, epsilon)
+
+		pred, err = knn.Predict("user3", "chan2")
+		assert.Nil(err)
+		assert.InDelta(2.56301, pred, epsilon)
+	})
+}
