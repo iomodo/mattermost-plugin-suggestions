@@ -5,6 +5,42 @@ import "github.com/mattermost/mattermost-server/model"
 // GetAllUsers returns all users
 func (p *Plugin) GetAllUsers() (map[string]*model.User, *model.AppError) {
 	allUsers := make(map[string]*model.User)
+	teamUsers, err := p.getTeamUsers()
+	if err != nil {
+		return nil, err
+	}
+	for _, users := range teamUsers {
+		for _, user := range users {
+			allUsers[user.Id] = user
+		}
+	}
+	return allUsers, nil
+}
+
+// GetAllChannels returns all channels
+func (p *Plugin) GetAllChannels() (map[string]*model.Channel, *model.AppError) {
+	allChannels := make(map[string]*model.Channel)
+	teamUsers, err := p.getTeamUsers()
+	if err != nil {
+		return nil, err
+	}
+	for team, users := range teamUsers {
+		for _, user := range users {
+			channels, err := p.API.GetChannelsForTeamForUser(team, user.Id, true)
+			if err != nil {
+				return nil, err
+			}
+			for _, channel := range channels {
+				allChannels[channel.Id] = channel
+			}
+		}
+	}
+	return allChannels, nil
+}
+
+// getTeamUsers returns slice of users for every team
+func (p *Plugin) getTeamUsers() (map[string][]*model.User, *model.AppError) {
+	teamUsers := make(map[string][]*model.User)
 	teams, err := p.API.GetTeams()
 	if err != nil {
 		return nil, err
@@ -20,11 +56,9 @@ func (p *Plugin) GetAllUsers() (map[string]*model.User, *model.AppError) {
 			if len(users) == 0 {
 				break
 			}
-			for _, user := range users {
-				allUsers[user.Id] = user
-			}
+			teamUsers[team.Id] = append(teamUsers[team.Id], users...)
 			page++
 		}
 	}
-	return allUsers, nil
+	return teamUsers, nil
 }
