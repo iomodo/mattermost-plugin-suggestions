@@ -119,34 +119,11 @@ func TestGetAllPublicChannelsForUser(t *testing.T) {
 		assert.Equal(t, 0, len(res))
 	})
 
-	t.Run("getAllChannelsForUserWithTeams error", func(t *testing.T) {
-		plugin, api := getErrorFuncPlugin("GetChannelsForTeamForUser", mock.Anything, mock.Anything, mock.Anything)
-		teams := make([]*model.Team, 1)
-		teams[0] = &model.Team{Id: "teamId"}
-		api.On("GetTeamsForUser", mock.Anything).Return(teams, (*model.AppError)(nil))
-		defer api.AssertExpectations(t)
-		_, err := plugin.GetAllPublicChannelsForUser("")
-		assert.NotNil(t, err)
-	})
-
-	t.Run("getAllChannelsForUserWithTeams error", func(t *testing.T) {
-		plugin, api := getErrorFuncPlugin("GetChannelsForTeamForUser", mock.Anything, mock.Anything, mock.Anything)
-		teams := make([]*model.Team, 1)
-		teams[0] = &model.Team{Id: "teamId"}
-		api.On("GetTeamsForUser", mock.Anything).Return(teams, (*model.AppError)(nil))
-		defer api.AssertExpectations(t)
-		_, err := plugin.GetAllPublicChannelsForUser("")
-		assert.NotNil(t, err)
-	})
-
 	t.Run("GetPublicChannelsForTeam error", func(t *testing.T) {
 		plugin, api := getErrorFuncPlugin("GetPublicChannelsForTeam", mock.Anything, mock.Anything, mock.Anything)
 		teams := make([]*model.Team, 1)
 		teams[0] = &model.Team{Id: "teamId"}
 		api.On("GetTeamsForUser", mock.Anything).Return(teams, (*model.AppError)(nil))
-		channels := make([]*model.Channel, 1)
-		channels[0] = &model.Channel{Id: "channelId"}
-		api.On("GetChannelsForTeamForUser", mock.Anything, mock.Anything, mock.Anything).Return(channels, (*model.AppError)(nil))
 		defer api.AssertExpectations(t)
 		_, err := plugin.GetAllPublicChannelsForUser("")
 		assert.NotNil(t, err)
@@ -159,20 +136,9 @@ func TestGetAllPublicChannelsForUser(t *testing.T) {
 		teams[0] = &model.Team{Id: "teamId1"}
 		teams[1] = &model.Team{Id: "teamId2"}
 		api.On("GetTeamsForUser", mock.Anything).Return(teams, (*model.AppError)(nil))
-		allChannels1 := make([]*model.Channel, 3)
-		allChannels1[0] = &model.Channel{Id: "channelId1"}
-		allChannels1[1] = &model.Channel{Id: "channelId2"}
-		allChannels1[2] = &model.Channel{Id: "channelId3"}
-		allChannels2 := make([]*model.Channel, 3)
-		allChannels2[0] = &model.Channel{Id: "channelId2"}
-		allChannels2[1] = &model.Channel{Id: "channelId3"}
-		allChannels2[2] = &model.Channel{Id: "channelId4"}
-		api.On("GetChannelsForTeamForUser", "teamId1", mock.Anything, mock.Anything).Return(allChannels1, (*model.AppError)(nil))
-		api.On("GetChannelsForTeamForUser", "teamId2", mock.Anything, mock.Anything).Return(allChannels2, (*model.AppError)(nil))
-
 		teamChannels := make([]*model.Channel, 2)
-		teamChannels[0] = allChannels1[0]
-		teamChannels[1] = allChannels2[2]
+		teamChannels[0] = &model.Channel{Id: "channelId1"}
+		teamChannels[1] = &model.Channel{Id: "channelId2"}
 		api.On("GetPublicChannelsForTeam", mock.Anything, 0, mock.Anything).Return(teamChannels, (*model.AppError)(nil))
 		api.On("GetPublicChannelsForTeam", mock.Anything, 1, mock.Anything).Return(make([]*model.Channel, 0), (*model.AppError)(nil))
 		plugin.SetAPI(api)
@@ -180,7 +146,7 @@ func TestGetAllPublicChannelsForUser(t *testing.T) {
 
 		correctChannels := map[string]*model.Channel{
 			"channelId1": teamChannels[0],
-			"channelId4": teamChannels[1],
+			"channelId2": teamChannels[1],
 		}
 		res, err := plugin.GetAllPublicChannelsForUser("")
 		assert.Nil(t, err)

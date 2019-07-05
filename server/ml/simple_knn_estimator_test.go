@@ -43,7 +43,7 @@ func TestSetParams(t *testing.T) {
 
 }
 
-func getUserChannelRanks() map[string]map[string]int64 {
+func getUserChannelActivity() map[string]map[string]int64 {
 	m := make(map[string]map[string]int64)
 	m["user1"] = make(map[string]int64)
 	m["user1"]["chan1"] = 1
@@ -58,7 +58,7 @@ func getUserChannelRanks() map[string]map[string]int64 {
 
 func TestComputeActivityMatrix(t *testing.T) {
 	assert := assert.New(t)
-	m := getUserChannelRanks()
+	m := getUserChannelActivity()
 	knn := new(SimpleKNN)
 	knn.SetParams(make(map[string]interface{}))
 	knn.computeActivityMatrix(m)
@@ -85,7 +85,7 @@ func TestComputeActivityMatrix(t *testing.T) {
 
 func TestComputeSimilarityMatrix(t *testing.T) {
 	assert := assert.New(t)
-	m := getUserChannelRanks()
+	m := getUserChannelActivity()
 	knn := new(SimpleKNN)
 	knn.SetParams(make(map[string]interface{}))
 	knn.computeActivityMatrix(m)
@@ -107,7 +107,7 @@ func TestComputeSimilarityMatrix(t *testing.T) {
 
 func TestFit(t *testing.T) {
 	assert := assert.New(t)
-	m := getUserChannelRanks()
+	m := getUserChannelActivity()
 	kn := NewSimpleKNN(nil)
 	knn := kn.(*SimpleKNN)
 	knn.Fit(m)
@@ -172,7 +172,7 @@ func TestGetNeighbors(t *testing.T) {
 	}
 }
 
-func getUserChannelRanks2() map[string]map[string]int64 {
+func getUserChannelActivity2() map[string]map[string]int64 {
 	m := make(map[string]map[string]int64)
 	m["user1"] = make(map[string]int64)
 	m["user1"]["chan1"] = 1
@@ -194,7 +194,7 @@ func getUserChannelRanks2() map[string]map[string]int64 {
 
 func TestPredict(t *testing.T) {
 	assert := assert.New(t)
-	m := getUserChannelRanks2()
+	m := getUserChannelActivity2()
 	kn := NewSimpleKNN(nil)
 	knn := kn.(*SimpleKNN)
 	knn.k = 2

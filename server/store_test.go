@@ -108,22 +108,22 @@ func TestRetreiveTimestampWithError(t *testing.T) {
 	assert.NotNil(err)
 }
 
-func TestUserChannelRanks(t *testing.T) {
+func TestUserChannelActivity(t *testing.T) {
 	assert := assert.New(t)
-	ranks := make(map[string]map[string]int64)
-	ranks["user1"] = map[string]int64{"channel1": 100}
-	bytes, _ := json.Marshal(ranks)
+	activity := make(map[string]map[string]int64)
+	activity["user1"] = map[string]int64{"channel1": 100}
+	bytes, _ := json.Marshal(activity)
 	plugin := Plugin{}
 	api := &plugintest.API{}
-	api.On("KVGet", userChannelRanksKey).Return(bytes, nil)
-	api.On("KVSet", userChannelRanksKey, bytes).Return(nil)
+	api.On("KVGet", userChannelActivityKey).Return(bytes, nil)
+	api.On("KVSet", userChannelActivityKey, bytes).Return(nil)
 	api.On("LogError", mock.Anything, mock.Anything, mock.Anything)
 	plugin.SetAPI(api)
-	err := plugin.saveUserChannelRanks(ranks)
+	err := plugin.saveUserChannelActivity(activity)
 	assert.Nil(err)
-	r, err := plugin.retreiveUserChannelRanks()
+	r, err := plugin.retreiveUserChannelActivity()
 	assert.Nil(err)
-	assert.Equal(ranks, r)
+	assert.Equal(activity, r)
 }
 
 func TestSave(t *testing.T) {

@@ -15,11 +15,13 @@ const (
 	channelAction          = "channels"
 	addRandomChannelAction = "add"
 	resetAction            = "reset"
+	computeAction          = "compute"
 
 	desc                 = "Mattermost Suggestions Plugin"
 	noNewChannelsText    = "No new channels for you."
 	addRandomChannelText = "Channel was successfully added."
 	resetText            = "Recommendations were cleared."
+	computeText          = "Recomendations were computed."
 )
 
 const commandHelp = `
@@ -27,6 +29,7 @@ const commandHelp = `
 * |/suggest channels| - Suggests relevant channels for the user
 * |/suggest add| - Adds random channel to a current user. For testing only.
 * |/suggest reset| - Resets suggestions. For testing only.
+* |/suggest compute| - Computes suggestions. For testing only
 `
 
 func getCommand() *model.Command {
@@ -111,7 +114,14 @@ func (p *Plugin) addRandomChannel(teamID, userID string) (*model.CommandResponse
 
 func (p *Plugin) reset(userID string) (*model.CommandResponse, *model.AppError) {
 	p.saveUserRecommendations(userID, make([]*recommendedChannel, 0))
+	p.saveUserChannelActivity(make(userChannelActivity))
+	p.saveTimestamp(-1)
 	return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, resetText), nil
+}
+
+func (p *Plugin) compute() (*model.CommandResponse, *model.AppError) {
+	p.preCalculateRecommendations()
+	return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, computeText), nil
 }
 
 // ExecuteCommand executes a command that has been previously registered via the RegisterCommand API.
@@ -143,6 +153,10 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 
 	if action == resetAction {
 		return p.reset(args.UserId)
+	}
+
+	if action == computeAction {
+		return p.compute()
 	}
 	return nil, nil
 }

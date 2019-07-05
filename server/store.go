@@ -2,12 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 )
 
 const (
-	timestampKey        = "timestamp"
-	userChannelRanksKey = "userChannelRanks"
+	timestampKey           = "timestamp"
+	userChannelActivityKey = "userChannelActivity"
 )
 
 type recommendedChannel struct {
@@ -17,11 +16,11 @@ type recommendedChannel struct {
 
 // initStore method is for initializing the KVStore.
 func (p *Plugin) initStore() error {
-	err := p.saveTimestamp(0)
+	err := p.saveTimestamp(-1)
 	if err != nil {
 		return err
 	}
-	return p.saveUserChannelRanks(make(userChannelRank))
+	return p.saveUserChannelActivity(make(userChannelActivity))
 }
 
 // saveUserRecommendations saves user recommendations in the KVStore.
@@ -49,29 +48,26 @@ func (p *Plugin) retreiveTimestamp() (int64, error) {
 	return time, err
 }
 
-// saveUserChannelRanks saves user-channel ranks in the KVStore.
-func (p *Plugin) saveUserChannelRanks(ranks userChannelRank) error {
-	return p.save(userChannelRanksKey, ranks)
+// saveUserChannelActivity saves user-channel activity in the KVStore.
+func (p *Plugin) saveUserChannelActivity(activity userChannelActivity) error {
+	return p.save(userChannelActivityKey, activity)
 }
 
-// retreiveUserChannelRanks gets user-channel ranks from the KVStore.
-func (p *Plugin) retreiveUserChannelRanks() (userChannelRank, error) {
-	var ranks userChannelRank
-	err := p.retreive(userChannelRanksKey, &ranks)
-	return ranks, err
+// retreiveUserChannelActivity gets user-channel activity from the KVStore.
+func (p *Plugin) retreiveUserChannelActivity() (userChannelActivity, error) {
+	var act userChannelActivity
+	err := p.retreive(userChannelActivityKey, &act)
+	return act, err
 }
 
 // save method saves generic value in the KVStore
 func (p *Plugin) save(key string, value interface{}) (err error) {
 	j, err := json.Marshal(value)
-	println(fmt.Sprintf("%v", err))
 	if err != nil {
-		p.API.LogError("Can't marshal time", "err", err.Error())
 		return err
 	}
 	appErr := p.API.KVSet(key, j)
 	if appErr != nil {
-		p.API.LogError("Can't set key", "err", appErr.Error())
 		return appErr
 	}
 	return nil
@@ -81,7 +77,6 @@ func (p *Plugin) save(key string, value interface{}) (err error) {
 func (p *Plugin) retreive(key string, value interface{}) error {
 	v, err := p.API.KVGet(key)
 	if err != nil {
-		p.API.LogError("can't get timestamp"+err.Error(), "err", err.Error()) //TODO
 		return err
 	}
 	return json.Unmarshal(v, value)

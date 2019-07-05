@@ -40,30 +40,11 @@ func (p *Plugin) GetAllChannels() (map[string]*model.Channel, *model.AppError) {
 	return allChannels, nil
 }
 
-func (p *Plugin) getAllChannelsForUserWithTeams(userID string, teams []*model.Team) (map[string]*model.Channel, *model.AppError) {
-	allChannels := make(map[string]*model.Channel)
-	for _, team := range teams {
-		channels, err := p.API.GetChannelsForTeamForUser(team.Id, userID, false)
-		if err != nil {
-			return nil, err
-		}
-		for _, channel := range channels {
-			allChannels[channel.Id] = channel
-		}
-	}
-	return allChannels, nil
-
-}
-
 // GetAllPublicChannelsForUser returns all public channels for user
 func (p *Plugin) GetAllPublicChannelsForUser(userID string) (map[string]*model.Channel, *model.AppError) {
 	allPublicChannels := make(map[string]*model.Channel)
 	teams, err := p.API.GetTeamsForUser(userID)
 
-	if err != nil {
-		return nil, err
-	}
-	allChannels, err := p.getAllChannelsForUserWithTeams(userID, teams)
 	if err != nil {
 		return nil, err
 	}
@@ -79,9 +60,7 @@ func (p *Plugin) GetAllPublicChannelsForUser(userID string) (map[string]*model.C
 				break
 			}
 			for _, channel := range channelsForTeam {
-				if _, ok := allChannels[channel.Id]; ok {
-					allPublicChannels[channel.Id] = channel
-				}
+				allPublicChannels[channel.Id] = channel
 			}
 			page++
 		}
@@ -113,3 +92,18 @@ func (p *Plugin) getTeamUsers() (map[string][]*model.User, *model.AppError) {
 	}
 	return teamUsers, nil
 }
+
+// func (p *Plugin) getAllChannelsForUserWithTeams(userID string, teams []*model.Team) (map[string]*model.Channel, *model.AppError) {
+// 	allChannels := make(map[string]*model.Channel)
+// 	for _, team := range teams {
+// 		channels, err := p.API.GetChannelsForTeamForUser(team.Id, userID, false)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		for _, channel := range channels {
+// 			allChannels[channel.Id] = channel
+// 		}
+// 	}
+// 	return allChannels, nil
+
+// }
