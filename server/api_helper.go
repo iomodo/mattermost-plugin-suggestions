@@ -1,6 +1,8 @@
 package main
 
-import "github.com/mattermost/mattermost-server/model"
+import (
+	"github.com/mattermost/mattermost-server/model"
+)
 
 // GetAllUsers returns all users
 func (p *Plugin) GetAllUsers() (map[string]*model.User, *model.AppError) {
@@ -36,6 +38,55 @@ func (p *Plugin) GetAllChannels() (map[string]*model.Channel, *model.AppError) {
 		}
 	}
 	return allChannels, nil
+}
+
+func (p *Plugin) getAllChannelsForUserWithTeams(userID string, teams []*model.Team) (map[string]*model.Channel, *model.AppError) {
+	allChannels := make(map[string]*model.Channel)
+	for _, team := range teams {
+		channels, err := p.API.GetChannelsForTeamForUser(team.Id, userID, false)
+		if err != nil {
+			return nil, err
+		}
+		for _, channel := range channels {
+			allChannels[channel.Id] = channel
+		}
+	}
+	return allChannels, nil
+
+}
+
+// GetAllPublicChannelsForUser returns all public channels for user
+func (p *Plugin) GetAllPublicChannelsForUser(userID string) (map[string]*model.Channel, *model.AppError) {
+	allPublicChannels := make(map[string]*model.Channel)
+	teams, err := p.API.GetTeamsForUser(userID)
+
+	if err != nil {
+		return nil, err
+	}
+	allChannels, err := p.getAllChannelsForUserWithTeams(userID, teams)
+	if err != nil {
+		return nil, err
+	}
+	for _, team := range teams {
+		page := 0
+		perPage := 100
+		for {
+			channelsForTeam, err := p.API.GetPublicChannelsForTeam(team.Id, page, perPage)
+			if err != nil {
+				return nil, err
+			}
+			if len(channelsForTeam) == 0 {
+				break
+			}
+			for _, channel := range channelsForTeam {
+				if _, ok := allChannels[channel.Id]; ok {
+					allPublicChannels[channel.Id] = channel
+				}
+			}
+			page++
+		}
+	}
+	return allPublicChannels, nil
 }
 
 // getTeamUsers returns slice of users for every team
