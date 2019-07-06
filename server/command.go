@@ -1,9 +1,7 @@
 package main
 
 import (
-	"math/rand"
 	"net/http"
-	"sort"
 	"strings"
 
 	"github.com/mattermost/mattermost-server/model"
@@ -17,6 +15,7 @@ const (
 	resetAction            = "reset"
 	computeAction          = "compute"
 
+	displayName          = "Suggestions"
 	desc                 = "Mattermost Suggestions Plugin"
 	noNewChannelsText    = "No new channels for you."
 	addRandomChannelText = "Channel was successfully added."
@@ -25,35 +24,35 @@ const (
 )
 
 const commandHelp = `
-* |/suggest info| - Shows user info
 * |/suggest channels| - Suggests relevant channels for the user
-* |/suggest add| - Adds random channel to a current user. For testing only.
 * |/suggest reset| - Resets suggestions. For testing only.
-* |/suggest compute| - Computes suggestions. For testing only
+* |/suggest compute| - Computes suggestions. For testing only.
 `
 
 func getCommand() *model.Command {
 	return &model.Command{
 		Trigger:          trigger,
-		DisplayName:      "Suggestions",
+		DisplayName:      displayName,
 		Description:      desc,
 		AutoComplete:     true,
-		AutoCompleteDesc: "Available commands: info, channels, help",
+		AutoCompleteDesc: "Available commands: channels, help",
 		AutoCompleteHint: "[command]",
 	}
 }
 
-func getCommandResponse(responseType, text string) *model.CommandResponse {
-	return &model.CommandResponse{
-		ResponseType: responseType,
-		Text:         text,
-		Type:         model.POST_DEFAULT,
+func (p *Plugin) postCommandResponse(args *model.CommandArgs, text string) {
+	post := &model.Post{
+		UserId:    p.botUserID,
+		ChannelId: args.ChannelId,
+		Message:   text,
 	}
+	_ = p.API.SendEphemeralPost(args.UserId, post)
 }
 
-func helpResponse() (*model.CommandResponse, *model.AppError) {
+func (p *Plugin) helpResponse(args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
 	text := "###### " + desc + " - Slash Command Help\n" + strings.Replace(commandHelp, "|", "`", -1)
-	return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, text), nil
+	p.postCommandResponse(args, text)
+	return &model.CommandResponse{}, nil
 }
 
 func appError(message string, err error) *model.AppError {
@@ -64,64 +63,36 @@ func appError(message string, err error) *model.AppError {
 	return model.NewAppError("Suggestions Plugin", message, nil, errorMessage, http.StatusBadRequest)
 }
 
-func (p *Plugin) getChannelListFromRecommendations(recommendations []*recommendedChannel) []*model.Channel {
-	sort.Slice(recommendations, func(i, j int) bool {
-		return recommendations[i].Score > recommendations[j].Score
-	})
-	channels := make([]*model.Channel, 0)
-	for _, rec := range recommendations {
-		channel, err := p.API.GetChannel(rec.ChannelID)
-		if err != nil {
-			p.API.LogError("Can't get channel - "+rec.ChannelID, "err", err.Error())
-			continue
-		}
-		channels = append(channels, channel)
-	}
-	return channels
-}
-
-func (p *Plugin) suggestChannelResponse(userID string) (*model.CommandResponse, *model.AppError) {
-	recommendations, err := p.retreiveUserRecomendations(userID)
+func (p *Plugin) suggestChannelResponse(args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
+	recommendations, err := p.retreiveUserRecomendations(args.UserId)
 	if err != nil {
 		return nil, appError("Can't retreive user recommendations.", err)
 	}
 	channels := p.getChannelListFromRecommendations(recommendations)
 	if len(channels) == 0 {
-		return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, noNewChannelsText), nil
+		p.postCommandResponse(args, noNewChannelsText)
+		return &model.CommandResponse{}, nil
 	}
 	text := "Channels we recommend\n"
 	for _, channel := range channels {
 		text += " * ~" + channel.Name + " - " + channel.Purpose + "\n"
 	}
-	return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, text), nil
+	p.postCommandResponse(args, text)
+	return &model.CommandResponse{}, nil
 }
 
-func (p *Plugin) addRandomChannel(teamID, userID string) (*model.CommandResponse, *model.AppError) {
-	channels, appErr := p.API.GetPublicChannelsForTeam(teamID, 0, 100)
-	if appErr != nil {
-		return nil, appError("Can't get channels for team for user", appErr)
-	}
-	randChan := channels[rand.Intn(len(channels))]
-	recommendations, err := p.retreiveUserRecomendations(userID)
-	if err != nil {
-		return nil, appError("Can't retreive user recommendations", err)
-	}
-	recommend := &recommendedChannel{ChannelID: randChan.Id, Score: rand.Float64()}
-	recommendations = append(recommendations, recommend)
-	p.saveUserRecommendations(userID, recommendations)
-	return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, addRandomChannelText+" Channel name "+randChan.DisplayName), nil
-}
-
-func (p *Plugin) reset(userID string) (*model.CommandResponse, *model.AppError) {
-	p.saveUserRecommendations(userID, make([]*recommendedChannel, 0))
+func (p *Plugin) reset(args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
+	p.saveUserRecommendations(args.UserId, make([]*recommendedChannel, 0))
 	p.saveUserChannelActivity(make(userChannelActivity))
 	p.saveTimestamp(-1)
-	return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, resetText), nil
+	p.postCommandResponse(args, resetText)
+	return &model.CommandResponse{}, nil
 }
 
-func (p *Plugin) compute() (*model.CommandResponse, *model.AppError) {
+func (p *Plugin) compute(args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
 	p.preCalculateRecommendations()
-	return getCommandResponse(model.COMMAND_RESPONSE_TYPE_EPHEMERAL, computeText), nil
+	p.postCommandResponse(args, computeText)
+	return &model.CommandResponse{}, nil
 }
 
 // ExecuteCommand executes a command that has been previously registered via the RegisterCommand API.
@@ -138,25 +109,18 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 	if command != "/"+trigger {
 		return &model.CommandResponse{}, nil
 	}
-
-	if action == "" || action == "help" {
-		return helpResponse()
+	switch action {
+	case "":
+		return p.helpResponse(args)
+	case "help":
+		return p.helpResponse(args)
+	case channelAction:
+		return p.suggestChannelResponse(args)
+	case resetAction:
+		return p.reset(args)
+	case computeAction:
+		return p.compute(args)
 	}
 
-	if action == channelAction {
-		return p.suggestChannelResponse(args.UserId)
-	}
-
-	if action == addRandomChannelAction {
-		return p.addRandomChannel(args.TeamId, args.UserId)
-	}
-
-	if action == resetAction {
-		return p.reset(args.UserId)
-	}
-
-	if action == computeAction {
-		return p.compute()
-	}
-	return nil, nil
+	return &model.CommandResponse{}, nil
 }

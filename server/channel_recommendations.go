@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"sort"
+
 	"github.com/iomodo/mattermost-plugin-suggestions/server/ml"
 	"github.com/mattermost/mattermost-server/mlog"
 	"github.com/mattermost/mattermost-server/model"
@@ -23,6 +26,22 @@ func (p *Plugin) isChannelOk(channelID string) bool {
 		return false
 	}
 	return true
+}
+
+func (p *Plugin) getChannelListFromRecommendations(recommendations []*recommendedChannel) []*model.Channel {
+	sort.Slice(recommendations, func(i, j int) bool {
+		return recommendations[i].Score > recommendations[j].Score
+	})
+	channels := make([]*model.Channel, 0)
+	for _, rec := range recommendations {
+		channel, err := p.API.GetChannel(rec.ChannelID)
+		if err != nil {
+			mlog.Error(fmt.Sprintf("Can't get channel - %v, err is %v", rec.ChannelID, err.Error()))
+			continue
+		}
+		channels = append(channels, channel)
+	}
+	return channels
 }
 
 func (p *Plugin) preCalculateRecommendations() {

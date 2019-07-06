@@ -92,18 +92,3 @@ func (p *Plugin) getTeamUsers() (map[string][]*model.User, *model.AppError) {
 	}
 	return teamUsers, nil
 }
-
-// func (p *Plugin) getAllChannelsForUserWithTeams(userID string, teams []*model.Team) (map[string]*model.Channel, *model.AppError) {
-// 	allChannels := make(map[string]*model.Channel)
-// 	for _, team := range teams {
-// 		channels, err := p.API.GetChannelsForTeamForUser(team.Id, userID, false)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		for _, channel := range channels {
-// 			allChannels[channel.Id] = channel
-// 		}
-// 	}
-// 	return allChannels, nil
-
-// }

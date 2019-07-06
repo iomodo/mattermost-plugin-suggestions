@@ -2,10 +2,14 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"path/filepath"
 	"sync"
 
+	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin"
+	"github.com/pkg/errors"
 	"github.com/robfig/cron"
 )
 
@@ -22,6 +26,7 @@ type Plugin struct {
 
 	// a job for pre-calculating channel recommendations for users.
 	preCalcJob *cron.Cron
+	botUserID  string
 }
 
 // ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
@@ -31,10 +36,43 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 
 // See https://developers.mattermost.com/extend/plugins/server/reference/
 
+type readFile func(filename string) ([]byte, error)
+
+func (p *Plugin) setupBot(reader readFile) error {
+	botID, err := p.Helpers.EnsureBot(&model.Bot{
+		Username:    "suggestions",
+		DisplayName: "Suggestions",
+		Description: "Created by the Suggestions plugin.",
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to ensure github bot")
+	}
+	p.botUserID = botID
+	bundlePath, err := p.API.GetBundlePath()
+	if err != nil {
+		return errors.Wrap(err, "couldn't get bundle path")
+	}
+
+	profileImage, err := reader(filepath.Join(bundlePath, "assets", "profile.jpeg"))
+	if err != nil {
+		return errors.Wrap(err, "couldn't read profile image")
+	}
+
+	appErr := p.API.SetProfileImage(botID, profileImage)
+	if appErr != nil {
+		return errors.Wrap(appErr, "couldn't set profile image")
+	}
+	return nil
+}
+
 // OnActivate will be run on plugin activation.
 func (p *Plugin) OnActivate() error {
 	p.API.RegisterCommand(getCommand())
 	err := p.initStore()
+	if err != nil {
+		return err
+	}
+	err = p.setupBot(ioutil.ReadFile)
 	if err != nil {
 		return err
 	}
@@ -50,6 +88,7 @@ func (p *Plugin) OnActivate() error {
 	c.Start()
 
 	p.preCalcJob = c
+	p.preCalculateRecommendations() //Run pre-calculation at once
 	return nil
 }
 
