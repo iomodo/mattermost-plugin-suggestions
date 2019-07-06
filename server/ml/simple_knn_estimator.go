@@ -3,6 +3,9 @@ package ml
 import (
 	"container/heap"
 	"errors"
+	"fmt"
+
+	"github.com/mattermost/mattermost-server/mlog"
 )
 
 const defaultK = 10
@@ -120,19 +123,30 @@ func (knn *SimpleKNN) getNeighbors(channel int) []int {
 
 // Predict the activity of channel channelID for userID
 func (knn *SimpleKNN) Predict(userID, channelID string) (float64, error) {
+	if userID == "84dxh1sqwiyniboqajiyrsh1ch" {
+		mlog.Info(fmt.Sprintf("channel - %v", channelID))
+	}
 	channel, exists := knn.channelIndexes[channelID]
 	if !exists {
 		return 0, errors.New("unknown channelID: " + channelID)
+	}
+	if userID == "84dxh1sqwiyniboqajiyrsh1ch" {
+		mlog.Info(fmt.Sprintf("channel - %v. exists - %v", channel, exists))
 	}
 	user, exists := knn.userIndexes[userID]
 	if !exists {
 		return 0, errors.New("unknown userID" + userID)
 	}
+	if userID == "84dxh1sqwiyniboqajiyrsh1ch" {
+		mlog.Info(fmt.Sprintf("user - %v. exists - %v", user, exists))
+	}
 	if len(knn.channelSimilarityMatrix) < knn.k {
 		return 0, nil // TODO
 	}
 	neighbors := knn.getNeighbors(channel)
-
+	if userID == "84dxh1sqwiyniboqajiyrsh1ch" {
+		mlog.Info(fmt.Sprintf("neighbors - %v", neighbors))
+	}
 	score := 0.0
 	sum := 0.0
 	for i := 0; i < len(neighbors); i++ {
@@ -140,5 +154,12 @@ func (knn *SimpleKNN) Predict(userID, channelID string) (float64, error) {
 		sum += knn.channelSimilarityMatrix[channel][neighbors[i]]
 	}
 	score = score / sum
+	if userID == "84dxh1sqwiyniboqajiyrsh1ch" {
+		mlog.Info(fmt.Sprintf("score - %v", score))
+	}
+	if userID == "84dxh1sqwiyniboqajiyrsh1ch" {
+		mlog.Info(fmt.Sprintf("channelSimilarityMatrix - %v", knn.channelSimilarityMatrix))
+		mlog.Info(fmt.Sprintf("activityMatrix - %v", knn.activityMatrix))
+	}
 	return score, nil
 }
