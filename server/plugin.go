@@ -25,8 +25,9 @@ type Plugin struct {
 	configuration *configuration
 
 	// a job for pre-calculating channel recommendations for users.
-	preCalcJob *cron.Cron
-	botUserID  string
+	preCalcJob    *cron.Cron
+	preCalcPeriod string
+	botUserID     string
 }
 
 // ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
@@ -65,6 +66,23 @@ func (p *Plugin) setupBot(reader readFile) error {
 	return nil
 }
 
+func (p *Plugin) startPrecalcJob() error {
+	config := p.getConfiguration()
+	p.preCalcPeriod = "@daily" // default once a day
+	if config.PreCalculationPeriod != "" {
+		p.preCalcPeriod = config.PreCalculationPeriod
+	}
+	c := cron.New()
+	if err := c.AddFunc(p.preCalcPeriod, func() {
+		p.preCalculateRecommendations()
+	}); err != nil {
+		return err
+	}
+	c.Start()
+	p.preCalcJob = c
+	return nil
+}
+
 // OnActivate will be run on plugin activation.
 func (p *Plugin) OnActivate() error {
 	p.API.RegisterCommand(getCommand())
@@ -76,24 +94,19 @@ func (p *Plugin) OnActivate() error {
 	if err != nil {
 		return err
 	}
-
-	c := cron.New()
-
-	if err := c.AddFunc("@daily", func() { // Run once a day
-		p.preCalculateRecommendations()
-	}); err != nil {
+	err = p.startPrecalcJob()
+	if err != nil {
 		return err
 	}
-
-	c.Start()
-
-	p.preCalcJob = c
 	p.preCalculateRecommendations() //Run pre-calculation at once
+
 	return nil
 }
 
 // OnDeactivate will be run on plugin deactivation.
 func (p *Plugin) OnDeactivate() error {
-	p.preCalcJob.Stop()
+	if p.preCalcJob != nil {
+		p.preCalcJob.Stop()
+	}
 	return nil
 }

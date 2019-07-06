@@ -45,15 +45,9 @@ func (p *Plugin) getChannelListFromRecommendations(recommendations []*recommende
 }
 
 func (p *Plugin) preCalculateRecommendations() {
-	userActivity, err := p.getActivity()
-	// mlog.Info(fmt.Sprintf("userActivity : %v", userActivity))
-	// allChannels, _ := p.GetAllChannels()
-	// mlog.Info("==============")
-	// for chann := range allChannels {
-	// 	mlog.Info(chann)
-	// }
-	// mlog.Info("==============")
+	mlog.Info("preCalculateRecommendations")
 
+	userActivity, err := p.getActivity()
 	if err != nil {
 		mlog.Error("Can't get user activity. " + err.Error())
 		return
