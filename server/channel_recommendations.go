@@ -41,6 +41,9 @@ func (p *Plugin) getChannelListFromRecommendations(recommendations []*recommende
 		}
 		channels = append(channels, channel)
 	}
+	if len(channels) > 5 {
+		channels = channels[:5]
+	}
 	return channels
 }
 

@@ -151,12 +151,18 @@ func TestExecuteCommandSuggestChannels(t *testing.T) {
 		assert.NotNil(t, err)
 	})
 	t.Run("no error", func(t *testing.T) {
-		text := "Channels we recommend\n * ~CoolChannel - \n"
+		text := "Channels we recommend\n * ~highest - \n * ~CoolChannel - \n * ~CoolChannel - \n * ~CoolChannel - \n * ~CoolChannel - \n"
 		plugin, api := getPostPlugin(user, channel, text)
-		channels := make([]*recommendedChannel, 1)
+		channels := make([]*recommendedChannel, 6)
 		channels[0] = &recommendedChannel{ChannelID: "chan", Score: 0.1}
+		channels[1] = &recommendedChannel{ChannelID: "chan", Score: 0.2}
+		channels[2] = &recommendedChannel{ChannelID: "chan", Score: 0.3}
+		channels[3] = &recommendedChannel{ChannelID: "chan", Score: 0.4}
+		channels[4] = &recommendedChannel{ChannelID: "highest", Score: 0.5}
+		channels[5] = &recommendedChannel{ChannelID: "chan", Score: 0.24}
 		bytes, _ := json.Marshal(channels)
 		api.On("KVGet", mock.Anything).Return(bytes, (*model.AppError)(nil))
+		api.On("GetChannel", "highest").Return(&model.Channel{Name: "highest"}, (*model.AppError)(nil))
 		api.On("GetChannel", mock.Anything).Return(&model.Channel{Name: "CoolChannel"}, (*model.AppError)(nil))
 		defer api.AssertExpectations(t)
 		resp, err := plugin.ExecuteCommand(nil, args)
