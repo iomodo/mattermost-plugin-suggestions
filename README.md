@@ -29,7 +29,7 @@ Trigger of the suggestion is the slash command `/suggest channels`. Other trigge
 * Implement couple of other machine learning models
 * Collect user data, perform tests and validation, optimize parameters, improve RMSE
 
-## Nice to have methods in Mattermost Plugin API
+#### Nice to have methods in Mattermost Plugin API
 * `func (p *Plugin) GetAllUsers(page, perPage int) ([]*model.User, *model.AppError)`
 * `func (p *Plugin) GetAllChannels(page, perPage int) ([]*model.Channel, *model.AppError)`
 * `func (p *Plugin) GetAllPublicChannelsForUser(userID string) ([]*model.Channel, *model.AppError)`
