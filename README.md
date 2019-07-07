@@ -9,7 +9,8 @@ Collaborative filtering is based on user activities. Basically if user `U1` and 
 ## Features
 * Implementation uses simple KNN method. Later on model could be changed and could be as complicated as it needs to be.
 * Number of posts is used as the user activity score per channel. This also could be changed for more complicated model.
-* Suggestions are pre-calculated. A job is spawned in OnActivete() method which calculates suggestions daily and save them in KVStore.
+* Suggestions are precalculated. A job is spawned in OnActivete() method which calculates suggestions daily and saves them in KVStore.
+* One can change precalculation period in the configuration.
 
 ## Installation
 > git clone https://github.com/iomodo/mattermost-plugin-suggestions.git
@@ -26,4 +27,10 @@ Trigger of the suggestion is the slash command `/suggest channels`. Other trigge
 ## Future Wrok
 * Change user activity score and add more features.
 * Implement couple of other machine learning models
-* Collect user data, perform tests and validation, improve RMSE  
+* Collect user data, perform tests and validation, optimize parameters, improve RMSE
+
+## Nice to have methods in Mattermost Plugin API
+* `func (p *Plugin) GetAllUsers() ([]*model.User, *model.AppError)`
+* `func (p *Plugin) GetAllChannels() ([]*model.Channel, *model.AppError)`
+* `func (p *Plugin) GetAllPublicChannelsForUser(userID string) ([]*model.Channel, *model.AppError)`
+
