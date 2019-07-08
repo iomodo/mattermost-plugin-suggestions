@@ -98,7 +98,7 @@ func (p *Plugin) OnActivate() error {
 	if err != nil {
 		return err
 	}
-	p.preCalculateRecommendations() //Run pre-calculation at once
+	go p.preCalculateRecommendations() //Run pre-calculation at once
 
 	return nil
 }
