@@ -9,7 +9,7 @@ Collaborative filtering is based on user activities. Basically if user `U1` and 
 ## Features
 * Implementation uses simple KNN method. Later on model could be changed and could be as complicated as it needs to be.
 * Number of posts is used as the user activity score per channel. This also could be changed for more complicated model.
-* Suggestions are precalculated. A job is spawned in OnActivete() method which calculates suggestions daily and saves them in KVStore.
+* Suggestions are precalculated. A job is spawned in OnActivate() method which calculates suggestions daily and saves them in KVStore.
 * One can change precalculation period in the configuration.
 
 ## Installation
@@ -24,7 +24,7 @@ Collaborative filtering is based on user activities. Basically if user `U1` and 
 ## Usage
 Trigger of the suggestion is the slash command `/suggest channels`. Other triggers will be added later.
 
-## Future Wrok
+## Future Work
 * Change user activity score and add more features.
 * Implement couple of other machine learning models
 * Collect user data, perform tests and validation, optimize parameters, improve RMSE
